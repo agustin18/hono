@@ -2862,6 +2862,53 @@ describe('DOM', () => {
       expect(effectCount).toBe(2)
       expect(cleanupCount).toBe(1)
     })
+
+    it('does not re-trigger effect when dependency remains NaN', async () => {
+      let runCount = 0
+      let setDummyGlobal: (fn: (c: number) => number) => void
+
+      const App = () => {
+        const [, setDummy] = useState(0)
+        setDummyGlobal = setDummy
+        const dep = NaN
+        useEffect(() => {
+          runCount++
+        }, [dep])
+        return <div>{String(dep)}</div>
+      }
+
+      render(<App />, root)
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(runCount).toBe(1)
+
+      setDummyGlobal!((c) => c + 1)
+      await Promise.resolve()
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(runCount).toBe(1)
+    })
+
+    it('re-triggers effect when dependency changes from 0 to -0', async () => {
+      let runCount = 0
+      let setDepGlobal: (v: number) => void
+
+      const App = () => {
+        const [dep, setDep] = useState(0)
+        setDepGlobal = setDep
+        useEffect(() => {
+          runCount++
+        }, [dep])
+        return <div>{String(dep)}</div>
+      }
+
+      render(<App />, root)
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(runCount).toBe(1)
+
+      setDepGlobal!(-0)
+      await Promise.resolve()
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(runCount).toBe(2)
+    })
   })
 
   describe('useLayoutEffect', () => {
