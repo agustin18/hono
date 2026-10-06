@@ -1121,6 +1121,31 @@ describe('intrinsic element', () => {
       expect(formData.get('name')).toBe('Hello')
     })
 
+    it('should call updated action after props update', async () => {
+      const initialAction = vi.fn()
+      const updatedAction = vi.fn()
+
+      const App = () => {
+        const [action, setAction] = useState(() => initialAction)
+        return (
+          <form action={action} method='post'>
+            <button type='button' onClick={() => setAction(() => updatedAction)}>
+              Update
+            </button>
+            <button type='submit'>Submit</button>
+          </form>
+        )
+      }
+
+      render(<App />, root)
+      root.querySelector('button[type="button"]')?.click()
+      await Promise.resolve()
+      root.querySelector('button[type="submit"]')?.click()
+
+      expect(initialAction).not.toHaveBeenCalled()
+      expect(updatedAction).toHaveBeenCalledTimes(1)
+    })
+
     it('should accept string as action', () => {
       const App = () => {
         return (

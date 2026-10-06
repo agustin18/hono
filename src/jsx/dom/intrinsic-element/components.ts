@@ -1,6 +1,6 @@
 import type { Props } from '../../base'
 import { useContext } from '../../context'
-import { use, useCallback, useMemo, useState } from '../../hooks'
+import { use, useCallback, useMemo, useRef, useState } from '../../hooks'
 import {
   dataPrecedenceAttr,
   deDupeKeyMap,
@@ -329,11 +329,14 @@ export const form: FC<
     ;(restProps as any).action = action
   }
 
+  const actionRef = useRef(action)
+  actionRef.current = action
+
   const [state, setState] = useState<[FormData | null, boolean]>([null, false]) // [FormData, isDirty]
   const onSubmit = useCallback<(ev: SubmitEvent | CustomEvent) => void>(
     async (ev: SubmitEvent | CustomEvent) => {
       const currentAction = ev.isTrusted
-        ? action
+        ? actionRef.current
         : (ev as CustomEvent).detail[customEventFormAction]
       if (typeof currentAction !== 'function') {
         return
@@ -396,10 +399,12 @@ const formActionableElement = (
   }
 ) => {
   if (typeof formAction === 'function') {
+    const formActionRef = useRef(formAction)
+    formActionRef.current = formAction
     const onClick = useCallback<(ev: MouseEvent) => void>((ev: MouseEvent) => {
       ev.preventDefault()
       ;(ev.currentTarget! as HTMLInputElement).form!.dispatchEvent(
-        new CustomEvent('submit', { detail: { [customEventFormAction]: formAction } })
+        new CustomEvent('submit', { detail: { [customEventFormAction]: formActionRef.current } })
       )
     }, [])
 
